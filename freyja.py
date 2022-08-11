@@ -28,7 +28,7 @@ def read_token():
         sys.exit(0)
 
 
-class Adam(discord.Client):
+class Freyja(discord.Client):
     def __init__(self):
         super().__init__()
         self.target_channel = None
@@ -143,5 +143,5 @@ def get_audio(bot, buffer, target_channel):
             break
 
 
-client = Adam()
+client = Freyja()
 client.run(read_token()["token"])
