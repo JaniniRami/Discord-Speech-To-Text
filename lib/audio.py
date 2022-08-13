@@ -1,6 +1,10 @@
 import os
 import speech_recognition as sr
-from pydub import AudioSegment as am
+# from pydub import AudioSegment as am
+
+
+
+
 
 
 # def downgrade_sample_rate(filename):
@@ -37,3 +41,4 @@ def speach_to_text(audio):
         return "ERROR: Couldn't understand."
     except sr.RequestError as e:
         return "ERROR: Could not request results from Wit.ai service; {0}".format(e)
+

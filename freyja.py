@@ -4,7 +4,6 @@ import sys
 sys.path.insert(0, "discord.py")
 ############################################
 
-
 import os
 import json
 import discord
@@ -15,8 +14,22 @@ from lib.audio import speach_to_text
 from lib.buffer_sink import BufferSink
 from threading import Thread
 
-discord.opus._load_default()
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
+
+
+discord.opus._load_default()
+close_flag = False
+question_query = []
+
+
+
+model="microsoft/DialoGPT-large"
+print("Loading model...")
+tokenizer = AutoTokenizer.from_pretrained(model)
+model = AutoModelForCausalLM.from_pretrained(model)
+print('Loaded Model')
 
 def read_token():
     if os.path.exists(".secrets"):
@@ -110,7 +123,7 @@ class Freyja(discord.Client):
 
 def get_audio(bot, buffer, target_channel):
     global close_flag
-
+    global question_query
     while True:
         if len(buffer.bytearr_buf) > 960000:
             idx = buffer.bytes_ps * 5
@@ -128,11 +141,21 @@ def get_audio(bot, buffer, target_channel):
                 )
 
                 text = speach_to_text(audio)
-                print("\n Question: {text}")
+                print(f"\n Question: {text}")
                 asyncio.run_coroutine_threadsafe(
-                    target_channel.send(f'You said: "{text}"'), bot.loop
+                        target_channel.send(f'You said: "{text}"'), bot.loop
                 )
-
+                if not text.startswith('ERROR'):
+                    if len(question_query) > 5:
+                        question_query = []
+                    new_user_input_ids = tokenizer.encode(text + tokenizer.eos_token, return_tensors='pt')
+                    bot_input_ids = torch.cat([chat_history_ids, new_user_input_ids], dim=-1) if question_query else new_user_input_ids
+                    chat_history_ids = model.generate(bot_input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
+                    print("DialoGPT: {}".format(tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)))
+                    if question_query and text == question_query[-1]:
+                        question_query = []
+                    else:
+                        question_query.append(text)
             buffer.freshen(idx)
 
         if close_flag:
@@ -142,6 +165,7 @@ def get_audio(bot, buffer, target_channel):
                 pass
             break
 
+        
 
 client = Freyja()
 client.run(read_token()["token"])
