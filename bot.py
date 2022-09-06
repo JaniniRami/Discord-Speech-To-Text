@@ -10,12 +10,9 @@ import discord
 import asyncio
 import speech_recognition as sr
 
-from lib.audio import speach_to_text
+from lib.audio import speech_to_text
 from lib.buffer_sink import BufferSink
 from threading import Thread
-
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 
@@ -23,13 +20,6 @@ discord.opus._load_default()
 close_flag = False
 question_query = []
 
-
-
-model="microsoft/DialoGPT-large"
-print("Loading model...")
-tokenizer = AutoTokenizer.from_pretrained(model)
-model = AutoModelForCausalLM.from_pretrained(model)
-print('Loaded Model')
 
 def read_token():
     if os.path.exists(".secrets"):
@@ -41,7 +31,7 @@ def read_token():
         sys.exit(0)
 
 
-class Freyja(discord.Client):
+class Bot(discord.Client):
     def __init__(self):
         super().__init__()
         self.target_channel = None
@@ -53,6 +43,7 @@ class Freyja(discord.Client):
         print(self.user.name)
         print(self.user.id)
         print("----------\n")
+        print('NOTE: Enter a voice channel then type /join and start talking and the bot will send what you said in the general channel.')
 
 
     async def on_message(self, message):
@@ -60,7 +51,7 @@ class Freyja(discord.Client):
 
         if message.author == self.user:
             return False
-
+        print(f'User >> {message.content}')
         if message.content.lower().startswith("/close"):
             await message.channel.send("Shuting down...")
             if self.voice_clients:
@@ -140,22 +131,11 @@ def get_audio(bot, buffer, target_channel):
                     bytes(slice), buffer.sample_rate, buffer.sample_width
                 )
 
-                text = speach_to_text(audio)
-                print(f"\n Question: {text}")
+                text = speech_to_text(audio)
+                print(f"\n You said: {text}")
                 asyncio.run_coroutine_threadsafe(
                         target_channel.send(f'You said: "{text}"'), bot.loop
                 )
-                if not text.startswith('ERROR'):
-                    if len(question_query) > 5:
-                        question_query = []
-                    new_user_input_ids = tokenizer.encode(text + tokenizer.eos_token, return_tensors='pt')
-                    bot_input_ids = torch.cat([chat_history_ids, new_user_input_ids], dim=-1) if question_query else new_user_input_ids
-                    chat_history_ids = model.generate(bot_input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
-                    print("DialoGPT: {}".format(tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)))
-                    if question_query and text == question_query[-1]:
-                        question_query = []
-                    else:
-                        question_query.append(text)
             buffer.freshen(idx)
 
         if close_flag:
@@ -167,5 +147,5 @@ def get_audio(bot, buffer, target_channel):
 
         
 
-client = Freyja()
+client = Bot()
 client.run(read_token()["token"])

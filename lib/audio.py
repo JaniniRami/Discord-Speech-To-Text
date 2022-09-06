@@ -13,7 +13,7 @@ import speech_recognition as sr
 #     sound.export(filename, format="wav")
 
 
-def speach_to_text(audio):
+def speech_to_text(audio):
     # if not os.path.exists('audio'):
     #     os.mkdir('audio')
 
