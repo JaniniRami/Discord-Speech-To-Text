@@ -1,6 +1,7 @@
 # needed until the fork is merged upstream #
 import sys
 
+print("Rapptz disclaimer: ")
 sys.path.insert(0, "discord.py")
 ############################################
 
@@ -14,7 +15,7 @@ from lib.audio import speech_to_text
 from lib.buffer_sink import BufferSink
 from threading import Thread
 
-
+print("-" * 15)
 
 discord.opus._load_default()
 close_flag = False
@@ -22,8 +23,8 @@ question_query = []
 
 
 def read_token():
-    if os.path.exists(".secrets"):
-        with open(".secrets") as f:
+    if os.path.exists("secrets"):
+        with open("secrets") as f:
             secrets = json.load(f)
         return secrets
     else:
@@ -43,15 +44,16 @@ class Bot(discord.Client):
         print(self.user.name)
         print(self.user.id)
         print("----------\n")
-        print('NOTE: Enter a voice channel then type /join and start talking and the bot will send what you said in the general channel.')
-
+        print(
+            "NOTE: Enter a voice channel then type /join and start talking and the bot will send what you said in the general channel."
+        )
 
     async def on_message(self, message):
         global close_flag
 
         if message.author == self.user:
             return False
-        print(f'User >> {message.content}')
+        print(f"User >> {message.content}")
         if message.content.lower().startswith("/close"):
             await message.channel.send("Shuting down...")
             if self.voice_clients:
@@ -134,7 +136,7 @@ def get_audio(bot, buffer, target_channel):
                 text = speech_to_text(audio)
                 print(f"\n You said: {text}")
                 asyncio.run_coroutine_threadsafe(
-                        target_channel.send(f'You said: "{text}"'), bot.loop
+                    target_channel.send(f'You said: "{text}"'), bot.loop
                 )
             buffer.freshen(idx)
 
@@ -145,7 +147,6 @@ def get_audio(bot, buffer, target_channel):
                 pass
             break
 
-        
 
 client = Bot()
 client.run(read_token()["token"])
